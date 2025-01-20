@@ -29,14 +29,17 @@ def get_csrf_token(request):
 
 # Create your views here.
 def index(request):
-    return render(request, 'coeventplannerapp/index.html')
+    user = User.objects.create(username='tiffanyjanzen')
+    user.set_password('1234567')
+    user.save()
+    return render(request, 'coeventplannerapp/index.html', {'user': user})
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.action in ['create']:
+        if self.action in ['create', 'list']:
             self.permission_classes = [AllowAny]
         else:
             self.permission_classes = [IsAuthenticated]
