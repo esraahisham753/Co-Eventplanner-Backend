@@ -29,10 +29,7 @@ def get_csrf_token(request):
 
 # Create your views here.
 def index(request):
-    user = User.objects.create(username='tiffanyjanzen')
-    user.set_password('1234567')
-    user.save()
-    return render(request, 'coeventplannerapp/index.html', {'user': user})
+    return render(request, 'coeventplannerapp/index.html')
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

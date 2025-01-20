@@ -35,6 +35,9 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'image', 'price', 'location', 'date']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
