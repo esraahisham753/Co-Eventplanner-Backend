@@ -9,7 +9,10 @@ from .models import User, Event, Task, Team, BudgetItem, Ticket, Message
 from .serializers import UserSerializer, EventSerializer, TaskSerializer, TeamSerializer, BudgetItemSerializer, TicketSerializer, MessageSerializer
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Add these views to your urlpatterns
 
@@ -115,10 +118,9 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
     
     def get_queryset(self):
+        print('get_queryset')
         queryset = super().get_queryset()
         event_id = self.kwargs.get('event_id', None)
-
-        print(event_id)
 
         if event_id:
             event = Event.objects.get(pk=event_id)
@@ -129,7 +131,15 @@ class TaskViewSet(viewsets.ModelViewSet):
                     return queryset
             
             return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-    
+        
+    @action(detail=False, methods=['get'], url_path='event-tasks/(?P<event_id>\d+)')
+    def event_tasks(self, request, event_id=None):
+        print('event_tasks')
+        self.kwargs['event_id'] = event_id
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def list(self, request, *args, **kwargs):
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
@@ -186,6 +196,26 @@ class TeamViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
+    
+    def get_queryset(self):
+        event_id = self.kwargs.get('event_id', None)
+        queryset = super().get_queryset()
+
+        if event_id:
+            event = Event.objects.get(pk=event_id)
+
+            for member in event.teams.all():
+                if self.request.user == member.user:
+                    queryset = queryset.filter(event=event_id)
+                    return queryset
+            
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
+    @action(detail=False, methods=['get'], url_path='event-teams/(?P<event_id>\d+)')
+    def event_teams(self, request, event_id=None):
+        queryset = self.get_queryset().filter(event=event_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -255,11 +285,38 @@ class BudgetItemViewSet(viewsets.ModelViewSet):
         self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
     
+    def get_queryset(self):
+        event_id = self.kwargs.get('event_id', None)
+        queryset = super().get_queryset()
+
+        if event_id:
+            event = Event.objects.get(pk=event_id)
+
+            for member in event.teams.all():
+                if self.request.user == member.user:
+                    queryset = queryset.filter(event=event_id)
+                    return queryset
+            
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
+    @action(detail=False, methods=['get'], url_path='event-budgetitems/(?P<event_id>\d+)')
+    def event_budgetitems(self, request, event_id=None):
+        self.kwargs['event_id'] = event_id
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.all():
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().retrieve(request, *args, **kwargs)
+        logger.info('retrieve')
+        
+        for member in instance.event.teams.all():
+            logger.info(member.user)
+            if request.user == member.user:
+                logger.info(request.user)
+                return super().retrieve(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])

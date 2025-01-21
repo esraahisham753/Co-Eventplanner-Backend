@@ -18,5 +18,7 @@ urlpatterns = [
     path('api/token/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', views.CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('api/csrf/', views.get_csrf_token, name='get_csrf_token'),
-    path('api/events/<int:event_id>/tasks/', views.TaskViewSet.as_view({'get': 'list'}), name='event-tasks'),
+    path('api/events/<int:event_id>/tasks/', views.TaskViewSet.as_view({'get': 'event_tasks'}), name='event-tasks'),
+    path('api/events/<int:event_id>/teams/', views.TeamViewSet.as_view({'get': 'event_teams'}), name='event-teams'),
+    path('api/events/<int:event_id>/budgetitems/', views.BudgetItemViewSet.as_view({'get': 'event_budgetitems'}), name='event-budgetitems'),
 ]
