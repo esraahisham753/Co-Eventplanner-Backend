@@ -147,4 +147,4 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-#AUTH_USER_MODEL = 'coeventplannerapp.User'
+AUTH_USER_MODEL = 'coeventplannerapp.User'

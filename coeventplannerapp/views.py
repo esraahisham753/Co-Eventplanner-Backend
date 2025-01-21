@@ -80,21 +80,30 @@ class EventViewSet(viewsets.ModelViewSet):
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
-    
+
+        for member in instance.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().update(request, *args, **kwargs)
+            
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
+
+        for member in instance.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().partial_update(request, *args, **kwargs)
+            
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().destroy(request, *args, **kwargs)
+
+        for member in instance.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().destroy(request, *args, **kwargs)
+            
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
 
 
 class TaskViewSet(viewsets.ModelViewSet):

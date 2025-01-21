@@ -38,6 +38,10 @@ class EventSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         request = self.context.get('request')
+        user = request.user
+        event = Event.objects.create(**validated_data)
+        Team.objects.create(user=user, event=event, role='organizer', invitation_status=True)
+        return event
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
