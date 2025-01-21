@@ -118,19 +118,23 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
     
     def get_queryset(self):
-        print('get_queryset')
-        queryset = super().get_queryset()
-        event_id = self.kwargs.get('event_id', None)
 
-        if event_id:
-            event = Event.objects.get(pk=event_id)
+        if self.action == 'event_tasks':
+            print('get_queryset')
+            queryset = super().get_queryset()
+            event_id = self.kwargs.get('event_id', None)
 
-            for member in event.teams.all():
-                if self.request.user == member.user:
-                    queryset = queryset.filter(event=event_id)
-                    return queryset
-            
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+            if event_id:
+                event = Event.objects.get(pk=event_id)
+
+                for member in event.teams.all():
+                    if self.request.user == member.user:
+                        queryset = queryset.filter(event=event_id)
+                        return queryset
+                
+                return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().get_queryset()
         
     @action(detail=False, methods=['get'], url_path='event-tasks/(?P<event_id>\d+)')
     def event_tasks(self, request, event_id=None):
@@ -198,19 +202,22 @@ class TeamViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
     
     def get_queryset(self):
-        event_id = self.kwargs.get('event_id', None)
-        queryset = super().get_queryset()
+        if self.action == 'event_teams':
+            event_id = self.kwargs.get('event_id', None)
+            queryset = super().get_queryset()
 
-        if event_id:
-            event = Event.objects.get(pk=event_id)
+            if event_id:
+                event = Event.objects.get(pk=event_id)
 
-            for member in event.teams.all():
-                if self.request.user == member.user:
-                    queryset = queryset.filter(event=event_id)
-                    return queryset
-            
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-    
+                for member in event.teams.all():
+                    if self.request.user == member.user:
+                        queryset = queryset.filter(event=event_id)
+                        return queryset
+                
+                return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().get_queryset()
+        
     @action(detail=False, methods=['get'], url_path='event-teams/(?P<event_id>\d+)')
     def event_teams(self, request, event_id=None):
         queryset = self.get_queryset().filter(event=event_id)
@@ -286,19 +293,22 @@ class BudgetItemViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
     
     def get_queryset(self):
-        event_id = self.kwargs.get('event_id', None)
-        queryset = super().get_queryset()
+        if self.action == 'event_budgetitems':
+            event_id = self.kwargs.get('event_id', None)
+            queryset = super().get_queryset()
 
-        if event_id:
-            event = Event.objects.get(pk=event_id)
+            if event_id:
+                event = Event.objects.get(pk=event_id)
 
-            for member in event.teams.all():
-                if self.request.user == member.user:
-                    queryset = queryset.filter(event=event_id)
-                    return queryset
-            
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-    
+                for member in event.teams.all():
+                    if self.request.user == member.user:
+                        queryset = queryset.filter(event=event_id)
+                        return queryset
+                
+                return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().get_queryset()
+        
     @action(detail=False, methods=['get'], url_path='event-budgetitems/(?P<event_id>\d+)')
     def event_budgetitems(self, request, event_id=None):
         self.kwargs['event_id'] = event_id
@@ -327,19 +337,16 @@ class BudgetItemViewSet(viewsets.ModelViewSet):
         
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
 
-
-    
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
+        return Response({"detail": "You do not have permission to perform this update action."}, status=status.HTTP_403_FORBIDDEN)
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
+        
+        if instance.event.teams.filter(user=request.user, role='organizer').exists():
+            return super(BudgetItemViewSet, self).partial_update(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform update this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
