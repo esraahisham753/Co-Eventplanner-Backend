@@ -114,36 +114,70 @@ class TaskViewSet(viewsets.ModelViewSet):
         self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
     
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_id = self.kwargs.get('event_id', None)
+
+        print(event_id)
+
+        if event_id:
+            event = Event.objects.get(pk=event_id)
+
+            for member in event.teams.all():
+                if self.request.user == member.user:
+                    queryset = queryset.filter(event=event_id)
+                    return queryset
+            
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
+    def list(self, request, *args, **kwargs):
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.all():
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().retrieve(request, *args, **kwargs)
+
+        for member in instance.event.teams.all():
+            if request.user == member.user:
+                return super().retrieve(request, *args, **kwargs)
+
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
 
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])
-        if not request.user in event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().create(request, *args, **kwargs)
+
+        for member in event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().create(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
+
+        for member in instance.event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().update(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
+
+        for member in instance.event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().partial_update(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().destroy(request, *args, **kwargs)
+
+        for member in instance.event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().destroy(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
 
 class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.all()
@@ -155,33 +189,63 @@ class TeamViewSet(viewsets.ModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.all():
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().retrieve(request, *args, **kwargs)
+
+        for member in instance.event.teams.all():
+            if request.user == member.user:
+                return super().retrieve(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])
-        if not request.user in event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().create(request, *args, **kwargs)
+
+        for member in event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().create(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
+    def list(self, request, *args, **kwargs):
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().partial_update(request, *args, **kwargs)
+        user = request.user
+        is_organizer = False
+
+        #print(user)
+
+        for member in instance.event.teams.filter(role='organizer'):
+            #print(member.user)
+            if user == member.user:
+                is_organizer = True
+                break
+        
+        is_invited = instance.user == user and instance.invitation_status == False
+
+        if is_organizer and 'role' in request.data:
+            instance.role = request.data['role']
+        
+        if is_invited and 'invitation_status' in request.data:
+            instance.invitation_status = request.data['invitation_status']
+        
+        if is_organizer or is_invited:
+            instance.save()
+            return Response(self.get_serializer(instance).data)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().destroy(request, *args, **kwargs)
+        
+        for member in instance.event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().destroy(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
 
 class BudgetItemViewSet(viewsets.ModelViewSet):
     queryset = BudgetItem.objects.all()
@@ -199,9 +263,14 @@ class BudgetItemViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])
-        if not request.user in event.teams.filter(role='organizer'):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().create(request, *args, **kwargs)
+        
+        for member in event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                return super().create(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+
+
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
