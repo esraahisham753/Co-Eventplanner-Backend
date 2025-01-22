@@ -454,11 +454,41 @@ class MessageViewSet(viewsets.ModelViewSet):
         self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
     
+    def get_queryset(self):
+        if self.action == 'event_messages':
+            event_id = self.kwargs.get('event_id', None)
+            queryset = super().get_queryset()
+
+            if event_id:
+                event = Event.objects.get(pk=event_id)
+
+                for member in event.teams.all():
+                    if self.request.user == member.user:
+                        queryset = queryset.filter(event=event_id)
+                        return queryset
+                
+                return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().get_queryset()
+    
+    @action(detail=False, methods=['get'], url_path='event-messages/(?P<event_id>\d+)')
+    def event_messages(self, request, event_id=None):
+        self.kwargs['event_id'] = event_id
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def list(self, request, *args, **kwargs):
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user in instance.event.teams.all():
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().retrieve(request, *args, **kwargs)
+        
+        for member in instance.event.teams.all():
+            if request.user == member.user:
+                return super().retrieve(request, *args, **kwargs)
+        
+        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])
@@ -472,12 +502,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                 is_member = True
                 break
         
-    
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if request.user != instance.sender:
+        if is_user and is_member:
+            return super().create(request, *args, **kwargs)
+        else:
             return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
     
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -487,8 +515,17 @@ class MessageViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if request.user != instance.sender:
+        is_sender = request.user == instance.sender
+        is_organizer = False
+
+        for member in instance.event.teams.filter(role='organizer'):
+            if request.user == member.user:
+                is_organizer = True
+                break
+
+        if is_sender or is_organizer:
+            return super().destroy(request, *args, **kwargs)
+        else:
             return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().destroy(request, *args, **kwargs)
 
 

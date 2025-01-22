@@ -66,4 +66,4 @@ class TicketSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'content', 'timestamp', 'user', 'event']
+        fields = ['id', 'content', 'created_at', 'sender', 'event']
