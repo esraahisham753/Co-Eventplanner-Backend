@@ -47,6 +47,12 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id', 'title', 'description', 'status', 'event', 'user']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user
+        task = Task.objects.create(user=user, **validated_data)
+        return task
 
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
