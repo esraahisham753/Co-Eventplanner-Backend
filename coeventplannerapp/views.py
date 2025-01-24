@@ -99,6 +99,21 @@ class EventViewSet(viewsets.ModelViewSet):
             self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
     
+    def get_queryset(self):
+        if self.action == 'organizer_events':
+            queryset = super().get_queryset()
+            user = self.request.user
+            queryset = queryset.filter(teams__user=user, teams__role='organizer')
+            return queryset
+        
+        return super().get_queryset()
+    
+    @action(detail=False, methods=['get'], url_path='organizer-events/')
+    def organizer_events(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
