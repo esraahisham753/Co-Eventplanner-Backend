@@ -47,6 +47,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id', 'title', 'description', 'status', 'event', 'user']
+        read_only_fields = ['user']
     
     def create(self, validated_data):
         request = self.context.get('request')
