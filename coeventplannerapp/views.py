@@ -10,7 +10,7 @@ from .serializers import UserSerializer, EventSerializer, TaskSerializer, TeamSe
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from rest_framework.decorators import api_view, permission_classes, action
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Subquery, OuterRef, F
 import logging
 
 logger = logging.getLogger(__name__)
@@ -105,6 +105,14 @@ class EventViewSet(viewsets.ModelViewSet):
             queryset = super().get_queryset()
             user = self.request.user
             queryset = queryset.filter(teams__user=user)
+            queryset = queryset.annotate(
+                role=Subquery(
+                    Team.objects.filter(
+                        event=OuterRef('pk'),
+                        user=user
+                    ).values('role')[:1]
+                )
+            );
             queryset = queryset.prefetch_related(
                 Prefetch('teams', queryset=Team.objects.filter(user=user))
             )

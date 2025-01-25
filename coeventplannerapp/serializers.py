@@ -32,9 +32,11 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 class EventSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(read_only=True)
+
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'image', 'price', 'location', 'date']
+        fields = ['id', 'title', 'description', 'image', 'price', 'location', 'date', 'role']
     
     def create(self, validated_data):
         request = self.context.get('request')
