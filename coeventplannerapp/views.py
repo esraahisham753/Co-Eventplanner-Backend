@@ -266,7 +266,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         
     @action(detail=False, methods=['get'], url_path='event-teams/(?P<event_id>\d+)')
     def event_teams(self, request, event_id=None):
-        queryset = self.get_queryset().filter(event=event_id)
+        queryset = self.get_queryset().filter(event=event_id).select_related('user')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
@@ -284,6 +284,16 @@ class TeamViewSet(viewsets.ModelViewSet):
 
         for member in event.teams.filter(role='organizer'):
             if request.user == member.user:
+                username = request.data.get('username')
+
+                try:
+                    user = User.objects.get(username=username)
+                except User.DoesNotExist:
+                    return Response({"detail": "User does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                request.data['user'] = user.id
+                request.data.pop('username', None)
+                
                 return super().create(request, *args, **kwargs)
         
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
