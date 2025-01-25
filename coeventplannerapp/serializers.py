@@ -67,7 +67,6 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ['id', 'user', 'event', 'role', 'invitation_status', 'username', 'image']
-        read_only_fields = ['user', 'event']
 
 class BudgetItemSerializer(serializers.ModelSerializer):
     class Meta:

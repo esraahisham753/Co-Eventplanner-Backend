@@ -281,7 +281,15 @@ class TeamViewSet(viewsets.ModelViewSet):
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def create(self, request, *args, **kwargs):
-        event = Event.objects.get(pk=request.data['event'])
+        event_id = request.data.get('event', None)
+
+        if not event_id:
+            return Response({"detail": "Event ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            event = Event.objects.get(pk=event_id)
+        except Event.DoesNotExist:
+            return Response({"detail": "Event does not exist."}, status=status.HTTP_400_BAD_REQUEST)
 
         for member in event.teams.filter(role='organizer'):
             if request.user == member.user:
@@ -292,10 +300,17 @@ class TeamViewSet(viewsets.ModelViewSet):
                 except User.DoesNotExist:
                     return Response({"detail": "User does not exist."}, status=status.HTTP_400_BAD_REQUEST)
                 
-                request.data['user'] = user.id
+                data = request.data.copy()
+                data['user'] = user.id
+                data['event'] = event.id
                 request.data.pop('username', None)
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
                 
-                return super().create(request, *args, **kwargs)
         
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
