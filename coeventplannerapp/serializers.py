@@ -46,10 +46,13 @@ class EventSerializer(serializers.ModelSerializer):
         return event
 
 class TaskSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    image = serializers.ImageField(source='user.image', read_only=True)
+
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'status', 'event', 'user']
-        read_only_fields = ['user']
+        fields = ['id', 'title', 'description', 'status', 'event', 'user', 'username', 'image']
+        read_only_fields = ['user', 'event']
     
     def create(self, validated_data):
         request = self.context.get('request')

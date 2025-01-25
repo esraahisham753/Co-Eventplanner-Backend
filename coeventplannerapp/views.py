@@ -198,6 +198,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         for member in instance.event.teams.all():
             if request.user == member.user:
+                instance = Task.objects.select_related('user').get(pk=instance.id)
                 return super().retrieve(request, *args, **kwargs)
 
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
@@ -305,6 +306,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
     def partial_update(self, request, *args, **kwargs):
+        #print(request.data)
         instance = self.get_object()
         user = request.user
         is_organizer = False
@@ -318,6 +320,8 @@ class TeamViewSet(viewsets.ModelViewSet):
                 break
         
         is_invited = instance.user == user and instance.invitation_status == False
+
+        print(is_invited)
 
         if is_organizer and 'role' in request.data:
             instance.role = request.data['role']
