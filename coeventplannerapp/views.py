@@ -456,7 +456,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
                 for member in event.teams.all():
                     if self.request.user == member.user:
-                        queryset = queryset.filter(event=event_id)
+                        queryset = queryset.filter(event=event_id).select_related('event')
                         return queryset
                 
                 return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
@@ -468,12 +468,12 @@ class TicketViewSet(viewsets.ModelViewSet):
                 user = User.objects.get(pk=user_id)
 
                 if self.request.user == user:
-                    queryset = queryset.filter(user=user_id)
+                    queryset = queryset.filter(user=user_id).select_related('event')
                     return queryset
                 
                 return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
         else:
-            return super().get_queryset()
+            return super().get_queryset().select_related('event')
     
     @action(detail=False, methods=['get'], url_path='event-tickets/(?P<event_id>\d+)')
     def event_tickets(self, request, event_id=None):
@@ -539,12 +539,12 @@ class MessageViewSet(viewsets.ModelViewSet):
 
                 for member in event.teams.all():
                     if self.request.user == member.user:
-                        queryset = queryset.filter(event=event_id)
+                        queryset = queryset.filter(event=event_id).select_related('sender')
                         return queryset
                 
                 return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
         
-        return super().get_queryset()
+        return super().get_queryset().select_related('sender')
     
     @action(detail=False, methods=['get'], url_path='event-messages/(?P<event_id>\d+)')
     def event_messages(self, request, event_id=None):
@@ -568,8 +568,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         event = Event.objects.get(pk=request.data['event'])
         sender = request.data['sender']
-        #print(sender)
-        is_user = sender == request.user.id
+        is_user = int(sender) == request.user.id
         is_member = False
 
         for member in event.teams.all():

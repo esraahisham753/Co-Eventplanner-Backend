@@ -74,11 +74,19 @@ class BudgetItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'amount', 'event']
 
 class TicketSerializer(serializers.ModelSerializer):
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    event_date = serializers.DateTimeField(source='event.date', read_only=True)
+    event_location = serializers.CharField(source='event.location', read_only=True)
+    event_price = serializers.DecimalField(source='event.price', max_digits=10, decimal_places=2, read_only=True)
+
     class Meta:
         model = Ticket
-        fields = ['id', 'code', 'user', 'event']
+        fields = ['id', 'code', 'user', 'event', 'event_title', 'event_date', 'event_location', 'event_price']
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    sender_image = serializers.ImageField(source='sender.image', read_only=True)
+
     class Meta:
         model = Message
-        fields = ['id', 'content', 'created_at', 'sender', 'event']
+        fields = ['id', 'content', 'image', 'created_at', 'sender', 'event', 'sender_username', 'sender_image']
