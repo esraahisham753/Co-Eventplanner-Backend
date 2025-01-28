@@ -156,35 +156,42 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
     serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_permissions(self):
-        self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
-    
     def get_queryset(self):
-
         if self.action == 'event_tasks':
-            print('get_queryset')
-            queryset = super().get_queryset()
-            event_id = self.kwargs.get('event_id', None)
-
-            if event_id:
-                event = Event.objects.get(pk=event_id)
-
-                for member in event.teams.all():
-                    if self.request.user == member.user:
-                        queryset = queryset.filter(event=event_id)
-                        return queryset
-                
-                return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+            event_id = self.kwargs.get('event_id')
+            return Task.objects.filter(event_id=event_id).select_related('user')
+        return Task.objects.filter(user=self.request.user).select_related('user')
+    
+    def create(self, request, *args, **kwargs):
+        # Get the user ID from the request data instead of using the logged-in user
+        user_id = request.data.get('user')
+        event_id = request.data.get('event')
         
-        return super().get_queryset()
+        # Check if the logged-in user is an organizer for this event
+        is_organizer = Team.objects.filter(
+            event_id=event_id,
+            user=request.user,
+            role='organizer'
+        ).exists()
         
+        if not is_organizer:
+            return Response(
+                {"detail": "Only organizers can create tasks"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Create the task with the specified user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['get'], url_path='event-tasks/(?P<event_id>\d+)')
     def event_tasks(self, request, event_id=None):
-        print('event_tasks')
         self.kwargs['event_id'] = event_id
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
@@ -204,15 +211,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     
 
-    def create(self, request, *args, **kwargs):
-        event = Event.objects.get(pk=request.data['event'])
-
-        for member in event.teams.filter(role='organizer'):
-            if request.user == member.user:
-                return super().create(request, *args, **kwargs)
-        
-        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-    
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
 

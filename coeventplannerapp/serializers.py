@@ -52,12 +52,10 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id', 'title', 'description', 'status', 'event', 'user', 'username', 'image']
-        read_only_fields = ['user', 'event']
+        read_only_fields = ['username', 'image']
     
     def create(self, validated_data):
-        request = self.context.get('request')
-        user = request.user
-        task = Task.objects.create(user=user, **validated_data)
+        task = Task.objects.create(**validated_data)
         return task
 
 class TeamSerializer(serializers.ModelSerializer):
