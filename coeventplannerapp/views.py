@@ -160,10 +160,14 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.action == 'event_tasks':
+        # For list and retrieve actions, return all tasks for the event
+        if self.action in ['list', 'retrieve', 'event_tasks']:
             event_id = self.kwargs.get('event_id')
-            return Task.objects.filter(event_id=event_id).select_related('user')
-        return Task.objects.filter(user=self.request.user).select_related('user')
+            if event_id:
+                return Task.objects.filter(event_id=event_id).select_related('user')
+            return Task.objects.all().select_related('user')
+        # For other actions (update, delete), return all tasks
+        return Task.objects.all().select_related('user')
     
     def create(self, request, *args, **kwargs):
         # Get the user ID from the request data instead of using the logged-in user
@@ -232,11 +236,20 @@ class TaskViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        for member in instance.event.teams.filter(role='organizer'):
-            if request.user == member.user:
-                return super().destroy(request, *args, **kwargs)
+        # Check if the logged-in user is an organizer for this event
+        is_organizer = Team.objects.filter(
+            event_id=instance.event.id,
+            user=request.user,
+            role='organizer'
+        ).exists()
         
-        return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        if not is_organizer:
+            return Response(
+                {"detail": "Only organizers can delete tasks"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)
 
 class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.all()
