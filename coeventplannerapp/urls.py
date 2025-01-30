@@ -26,4 +26,5 @@ urlpatterns = [
     path('api/events/<int:event_id>/messages/', views.MessageViewSet.as_view({'get': 'event_messages'}), name='event-messages'),
     path('api/users/username/<str:username>/', views.UserViewSet.as_view({'get': 'user_detail'}), name='user-detail'),
     path('api/me/events/', views.EventViewSet.as_view({'get': 'organizer_events'}), name='organizer-events'),
+    path('api/me/teams/pending/', views.TeamViewSet.as_view({'get': 'pending_teams'}), name='pending-teams'),
 ]

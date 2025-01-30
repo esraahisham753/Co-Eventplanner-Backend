@@ -61,10 +61,12 @@ class TaskSerializer(serializers.ModelSerializer):
 class TeamSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     image = serializers.ImageField(source='user.image', read_only=True)
+    event_title = serializers.CharField(source='event.title', read_only=True)
+    event_image = serializers.ImageField(source='event.image', read_only=True)
 
     class Meta:
         model = Team
-        fields = ['id', 'user', 'event', 'role', 'invitation_status', 'username', 'image']
+        fields = ['id', 'user', 'event', 'role', 'invitation_status', 'username', 'image', 'event_title', 'event_image']
 
 class BudgetItemSerializer(serializers.ModelSerializer):
     class Meta:

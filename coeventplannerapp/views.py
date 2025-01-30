@@ -273,8 +273,23 @@ class TeamViewSet(viewsets.ModelViewSet):
                         return queryset
                 
                 return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+            
+        if self.action == 'pending_teams':
+            queryset = super().get_queryset()
+            queryset = queryset.filter(invitation_status=False, user=self.request.user)
+            return queryset
         
+
         return super().get_queryset()
+    
+    @action(detail=False, methods=['get'], url_path='me/teams/pending/')
+    def pending_teams(self, request):
+        queryset = self.get_queryset().filter(
+            user=request.user,
+            invitation_status=False
+        ).select_related('event', 'user')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
         
     @action(detail=False, methods=['get'], url_path='event-teams/(?P<event_id>\d+)')
     def event_teams(self, request, event_id=None):
@@ -364,7 +379,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        for member in instance.event.teams.filter(role='organizer'):
+        for member in instance.event.teams.all():
             if request.user == member.user:
                 return super().destroy(request, *args, **kwargs)
         
